@@ -75,7 +75,6 @@ export class FileUploadService {
     createdBy?: User;
   }): Promise<FileStorage> {
     const { file, folder = "others" } = data;
-    console.log("data", data);
     // Return null if no file is provided
     if (!file) return null;
 
@@ -139,6 +138,7 @@ export class FileUploadService {
       // Return null if the file was not uploaded successfully
       return null;
     } catch (error) {
+      await fs.unlinkSync(join(process.cwd(), filePath));
       console.error("Error during file upload:", error);
       return null;
     }

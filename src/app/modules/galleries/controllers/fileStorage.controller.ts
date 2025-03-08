@@ -15,6 +15,7 @@ import { IFileMeta } from "@src/app/interfaces";
 import { SuccessResponse } from "@src/app/types";
 import { storageImageOptions } from "@src/shared/file.constants";
 import { FilterFiledDTO } from "../dtos";
+import { UploadFileDto } from "../dtos/fileStorage/file.upload.dto";
 import { FileUploadService } from "../services/fileUpload.service";
 
 @ApiTags("File Storage")
@@ -30,29 +31,13 @@ export class FileStorageController {
 
   @Post()
   @ApiConsumes("multipart/form-data")
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        files: {
-          type: "array",
-          items: {
-            type: "string",
-            format: "binary",
-          },
-        },
-        folder: {
-          type: "default",
-        },
-      },
-    },
-  })
+  @ApiBody({ type: UploadFileDto })
   @UseInterceptors(
     FilesInterceptor("files", 5, { storage: storageImageOptions })
   )
   async uploadImage(
     @UploadedFiles() files: IFileMeta[],
-    @Body() body: { folder: string }
+    @Body() body: UploadFileDto
   ): Promise<SuccessResponse> {
     return this.fileUploadService.uploadImage(files, body);
   }
