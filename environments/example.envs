@@ -1,0 +1,100 @@
+PORT=4500
+APP_ENV=development
+NODE_ENV=development
+API_PREFIX=api/v1
+TZ=UTC
+API_BASE_URL=http://localhost:4500
+
+# 
+# Swagger
+# 
+
+API_VERSION=1.0.0
+API_TITLE="KnowledgeBase Core API"
+API_DESCRIPTION="KnowledgeBase Core API"
+
+# 
+# Default DB
+# 
+
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=galib
+DB_PASSWORD=123456
+DB_DATABASE=knowledgeBase-api
+DB_SYNCHRONIZE=true
+DB_LOGGING=false
+
+# 
+# Security
+# 
+
+CORS_ALLOWED_ORIGINS=http://localhost,http://localhost:4500
+RATE_LIMIT_TTL=60000
+RATE_LIMIT_MAX=100
+
+# 
+# Loggerinternal
+# 
+
+LOG_FOLDER=logs
+
+# 
+# JWT
+# 
+
+JWT_SECRET="ssh-rsa wagehat"
+JWT_SALT_ROUNDS=10
+JWT_EXPIRES_IN=30d
+JWT_REFRESH_TOKEN_EXPIRES_IN=30d
+
+# 
+# S3
+# 
+
+S3_ENDPOINT=sgp1.digitaloceanspaces.com
+S3_ACCESS_KEY=DO00J7N6BMX64HRNTKUN
+S3_SECRET_KEY=Rqf25w+w9On9DLechecklistbuilderIS5LIPa18kEWmEoXjKDHs5MOtW2Q
+S3_BUCKET=unispaces
+
+# 
+# Redis
+# 
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=30kLkJSDjXp2
+
+# 
+# Seed Database
+# 
+
+SUPER_ADMIN_IDENTIFIER=superadmin@wagehat.com
+SUPER_ADMIN_PASSWORD=123456
+
+# 
+# SSO Web
+# 
+
+SSO_WEB_LOGIN_URL=http://localhost:4200/auth/signin
+
+# 
+# Google Authenticator
+# 
+
+GOOGLE_AUTHENTICATOR_ISSUER="Wagehat - Dev"
+
+# 
+# Google Auth
+# 
+
+
+SUPER_ADMIN_EMAIL=galib@gmail.com
+SUPER_ADMIN_PASSWORD=123456
+
+
+SMTP_HOST: vxcvxcvxcv,
+SMTP_PORT: 45444,
+SMTP_USERNAME: xcvxcv,
+SMTP_PASSWORD: xcv,

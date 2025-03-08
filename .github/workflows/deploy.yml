@@ -1,0 +1,185 @@
+name: Staging CI/CD Pipeline
+
+on:
+  push:
+    branches: [staging]
+
+env:
+  PORT: 4800
+  APP_ENV: staging
+  APP_NAME: knowledge-base-stg
+  SERVER_USER: ${{ secrets.SERVER_USER }}
+  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+  SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_DATABASE: ${{ secrets.DB_DATABASE }}
+
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_SECRET: ${{ secrets.GOOGLE_SECRET }}
+  GOOGLE_REDIRECT_URL: ${{ secrets.GOOGLE_REDIRECT_URL }}
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Generate .env
+        run: |
+          envsubst "`printf '${%s} ' $(sh -c "env|cut -d'=' -f1")`" < ./environments/prod.example.env > ./environments/$NODE_ENV.env
+          echo "$(cat ./environments/$NODE_ENV.env)"
+        env:
+          PORT: ${{ env.PORT }}
+          APP_ENV: ${{ env.APP_ENV }}
+          NODE_ENV: ${{ env.APP_ENV }}
+          API_PREFIX: api/v1
+          TZ: UTC
+
+          # Swagger
+          API_VERSION: 1.0.0
+          API_TITLE: "r-tech meet app"
+          API_DESCRIPTION: "r-tech meet app"
+
+          # Default DB
+          DB_TYPE: postgres
+          DB_HOST: ${{ env.DB_HOST }}
+          DB_PORT: 5432
+          DB_USERNAME: ${{ env.DB_USERNAME }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_DATABASE: ${{ env.DB_DATABASE }}
+          DB_SYNCHRONIZE: true
+          DB_LOGGING: false
+          DB_SSLMODE: false
+          DB_REJECT_UNAUTHORIZED: false
+
+          # Security
+          CORS_ALLOWED_ORIGINS: http://localhost, http://localhost:3080
+          RATE_LIMIT_TTL: 60000
+          RATE_LIMIT_MAX: 100
+
+          # Loggerinternal
+          LOG_FOLDER: logs
+
+          # JWT
+          JWT_SECRET: db222766fa5cd7d6df05b7f29072bcc311d4575a1a589e24d7f6e03e84484931d7a068f651d17011974dd680fd4af767d0ce
+          JWT_SALT_ROUNDS: 10
+          JWT_EXPIRES_IN: 30d
+          JWT_REFRESH_TOKEN_EXPIRES_IN: 30d
+
+          # S3
+          S3_ENDPOINT: sgp1.digitaloceanspaces.com
+          S3_REGION: sgp1
+          S3_ACCESS_KEY: DO801BPPZLV2AZMUE8XE
+          S3_SECRET_KEY: KrlBqCkvNbfiFThRneuYT9soCRddt5rjVZrCNoS5XKs
+          S3_BUCKET: buckecy1
+          S3_FOLDER_PREFIX: marzan-blog-api
+
+          # Redis
+          REDIS_HOST: 157.245.50.140
+          REDIS_PORT: 6379
+          REDIS_USERNAME: default
+          REDIS_PASSWORD: 30kLkJSDjXp2
+          REDIS_TLS: false
+
+          # SMTP
+          SMTP_HOST:
+          SMTP_PORT:
+          SMTP_SECURE:
+          SMTP_AUTH_USER:
+          SMTP_AUTH_PASS:
+
+          # Google Auth
+          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
+          GOOGLE_SECRET: ${{ env.GOOGLE_SECRET }}
+          GOOGLE_REDIRECT_URL: ${{ env.GOOGLE_REDIRECT_URL }}
+
+          # Seed Database
+          SUPER_ADMIN_EMAIL: galib@gmail.com
+          SUPER_ADMIN_PASSWORD: 123456
+
+          LIVEKIT_API_KEY: APIUMXGowx3ULW5
+          LIVEKIT_API_SECRET: GLUz2s3MQfOfxWezLMStXhfN1HqBV3Pd1tpKi60emAaA
+          LIVEKIT_SERVER_URL: wss://livekit.visathing.com
+
+      - name: Logging to docker
+        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+      - name: Docker Push
+        run: docker push ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+  Deploy:
+    needs: Build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Logging to docker
+        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+      - name: Deploy To Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            echo "Logging to docker hub"
+            docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+            echo "Stopping previous build"
+            docker stop ${{ env.APP_NAME }}
+
+            echo "Removing previous build"
+            docker rm ${{ env.APP_NAME }}
+
+            echo "Removing old image from local"
+            docker rmi ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+            echo "Pulling latest image from docker hub"
+            docker pull ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+  Run:
+    needs: Deploy
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Logging to docker
+        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+      - name: Deploy To Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            echo "Logging to docker hub"
+            docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+            echo "Starting latest build"
+
+            docker run -e NODE_ENV=${{ env.APP_ENV }} -d \
+              --restart always --network host \
+              -dit --name ${{ env.APP_NAME }} \
+              -p ${{ env.PORT }}:${{ env.PORT }} \
+              -v /var/www/uploads:/uploads \
+              --name ${{ env.APP_NAME }} \
+              ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+            echo "Deploy Done"
