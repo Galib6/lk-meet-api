@@ -1,4 +1,4 @@
-name: Staging CI/CD Pipeline
+name: Production CI/CD Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ env:
   PORT: 4800
   APP_ENV: production
   NODE_ENV: production
-  APP_NAME: knowledge-base-stg
+  APP_NAME: meet-live-api
   SERVER_USER: ${{ secrets.SERVER_USER }}
   SERVER_HOST: ${{ secrets.SERVER_HOST }}
   SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
