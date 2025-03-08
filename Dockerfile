@@ -37,7 +37,7 @@ RUN chmod +x ./entrypoint.sh
 ENV PORT 6800
 
 # Expose the port
-EXPOSE 6800
+EXPOSE $PORT
 
 # Define the entrypoint
 ENTRYPOINT ["sh", "./entrypoint.sh"]
