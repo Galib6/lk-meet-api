@@ -6,7 +6,8 @@ on:
 
 env:
   PORT: 4800
-  APP_ENV: staging
+  APP_ENV: production
+  NODE_ENV: production
   APP_NAME: knowledge-base-stg
   SERVER_USER: ${{ secrets.SERVER_USER }}
   SERVER_HOST: ${{ secrets.SERVER_HOST }}
