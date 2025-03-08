@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  PORT: 4800
+  PORT: 6800
   APP_ENV: production
   NODE_ENV: production
   APP_NAME: meet-live-api
