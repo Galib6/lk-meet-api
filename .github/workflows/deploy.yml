@@ -18,7 +18,6 @@ env:
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_DATABASE: ${{ secrets.DB_DATABASE }}
-
   GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
   GOOGLE_SECRET: ${{ secrets.GOOGLE_SECRET }}
   GOOGLE_REDIRECT_URL: ${{ secrets.GOOGLE_REDIRECT_URL }}
