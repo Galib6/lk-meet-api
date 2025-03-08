@@ -175,8 +175,7 @@ jobs:
             echo "Starting latest build"
 
             docker run -e NODE_ENV=${{ env.APP_ENV }} -d \
-              --restart always --network host \
-              -dit --name ${{ env.APP_NAME }} \
+              --restart always \
               -p ${{ env.PORT }}:${{ env.PORT }} \
               -v /var/www/uploads:/uploads \
               --name ${{ env.APP_NAME }} \
