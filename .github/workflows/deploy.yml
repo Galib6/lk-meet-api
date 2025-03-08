@@ -57,6 +57,7 @@ jobs:
           DB_SYNCHRONIZE: true
           DB_LOGGING: false
           DB_SSLMODE: false
+          DB_REJECT_UNAUTHORIZED: false
 
           # Security
           CORS_ALLOWED_ORIGINS: http://localhost, http://localhost:3080
