@@ -14,7 +14,7 @@ RUN yarn install
 COPY . .
 
 # Expose the application port
-EXPOSE 9000
+EXPOSE 4800
 
 # Start the application
 CMD ["yarn", "start"]
