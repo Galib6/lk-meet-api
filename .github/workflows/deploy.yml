@@ -2,7 +2,7 @@ name: Staging CI/CD Pipeline
 
 on:
   push:
-    branches: [staging]
+    branches: [main]
 
 env:
   PORT: 4800
