@@ -227,13 +227,14 @@ export class UserService extends BaseService<User> {
         email: payload.email,
         password: payload.password,
         phoneNumber: payload?.phoneNumber,
+        isVerified: true,
       });
 
       const userRole = await this.userRoleService.createOneBase({
         user: createdUser.id as any,
         role: role.id as any,
       });
-      return createdUser;
+      return await this.loginUser(payload);
     }
   }
 
