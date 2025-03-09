@@ -213,9 +213,9 @@ export class UserService extends BaseService<User> {
   }
 
   async registerUser(payload: RegisterDTO): Promise<User> {
-    const role = await this.roleService.findOneBase({
-      title: ENUM_ACL_DEFAULT_ROLES.SUPER_ADMIN,
-    });
+    // const role = await this.roleService.findOneBase({
+    //   title: ENUM_ACL_DEFAULT_ROLES.SUPER_ADMIN,
+    // });
     const isExist = await this.findOneBase({ email: payload.email });
 
     if (isExist) {
@@ -230,11 +230,11 @@ export class UserService extends BaseService<User> {
         isVerified: true,
       });
 
-      const userRole = await this.userRoleService.createOneBase({
-        user: createdUser.id as any,
-        role: role.id as any,
-      });
-      return await this.loginUser(payload);
+      // const userRole = await this.userRoleService.createOneBase({
+      //   user: createdUser.id as any,
+      //   role: role.id as any,
+      // });
+      return createdUser;
     }
   }
 
@@ -250,6 +250,8 @@ export class UserService extends BaseService<User> {
         "phoneNumber",
       ],
     });
+
+    console.log();
 
     if (!isExist) {
       throw new BadRequestException("User does not exists");

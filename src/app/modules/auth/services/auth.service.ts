@@ -156,10 +156,16 @@ export class AuthService {
   }
 
   async registerUser(payload: RegisterDTO): Promise<SuccessResponse> {
+    // console.log("payload", payload);
     const user = await this.userService.registerUser(payload);
+    const loginRes = await this.loginUser({
+      email: user?.email,
+      password: payload?.password,
+    });
+
     return new SuccessResponse(
       "User registered successfully. Please login",
-      user
+      loginRes?.data
     );
   }
 
