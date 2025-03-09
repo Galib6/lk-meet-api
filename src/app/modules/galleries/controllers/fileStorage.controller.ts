@@ -15,7 +15,7 @@ import { IFileMeta } from "@src/app/interfaces";
 import { SuccessResponse } from "@src/app/types";
 import { storageImageOptions } from "@src/shared/file.constants";
 import { FilterFiledDTO } from "../dtos";
-import { UploadFileDto } from "../dtos/fileStorage/file.upload.dto";
+import { UploadFileDto } from "../dtos/fileStorage/uploadFile.dto";
 import { FileUploadService } from "../services/fileUpload.service";
 
 @ApiTags("File Storage")

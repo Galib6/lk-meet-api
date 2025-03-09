@@ -80,8 +80,7 @@ export class ExceptionFilter implements NestExceptionFilter {
     const res = {
       success: false,
       statusCode: statusCode,
-      message: handleErrorMessage(errorMessages),
-      // errorMessages,
+      errorMessages: handleErrorMessage(errorMessages),
       // exception,
     };
     response.status(statusCode).json(res);
