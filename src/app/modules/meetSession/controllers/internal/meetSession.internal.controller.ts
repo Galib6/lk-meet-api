@@ -24,7 +24,7 @@ import { MeetingSessionService } from "../../services/meetSession.service";
 @ApiTags("MeetingSessions")
 @ApiBearerAuth()
 // @Auth(AuthType.None)
-@Controller("internal/meeting-sessions")
+@Controller("meeting-sessions")
 export class InternalMeetingSessionController {
   RELATIONS = [];
 

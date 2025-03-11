@@ -36,6 +36,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
   }
 
   async createSession(body: CreateMeetingSessionDTO, authUser: IActiveUser) {
+    console.log("authUser", authUser);
     const newRoom = await this.createOneBase({
       roomName: this.generateMetingRoomName(),
       createdBy: {

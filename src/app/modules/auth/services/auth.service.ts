@@ -243,7 +243,6 @@ export class AuthService {
         roles,
       },
     };
-
     const refreshTokenPayload = {
       user: { id: user.id, name: user?.firstName + " " + user?.lastName },
       isRefreshToken: true,
@@ -398,7 +397,6 @@ export class AuthService {
     user = await this.userService.findOne({
       where: { email: responseData.email },
     });
-
     if (!user) {
       throw new NotFoundException("User not found");
     }
@@ -425,6 +423,7 @@ export class AuthService {
     const tokenPayload = {
       user: {
         id: user.id,
+        name: (user?.firstName + " " + user?.lastName).trim(),
         email: user.email,
       },
     };
@@ -432,11 +431,13 @@ export class AuthService {
     const refreshTokenPayload = {
       user: {
         id: user.id,
+        name: (user?.firstName + " " + user?.lastName).trim(),
       },
       isRefreshToken: true,
     };
-    const token = this.jwtHelper.makeAccessToken(tokenPayload);
-    const refreshToken = this.jwtHelper.makeRefreshToken(refreshTokenPayload);
+    const token = await this.jwtHelper.makeAccessToken(tokenPayload);
+    const refreshToken =
+      await this.jwtHelper.makeRefreshToken(refreshTokenPayload);
 
     return new SuccessResponse("Validated successfully", {
       token,
