@@ -8,7 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "@src/app/base/base.service";
 import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { SuccessResponse } from "@src/app/types";
-import { asyncForEach } from "@src/shared";
+import { asyncForEach, randomString } from "@src/shared";
 import { Repository } from "typeorm";
 import { LiveKitService } from "../../livekit/services/livekit.service";
 import {
@@ -36,7 +36,6 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
   }
 
   async createSession(body: CreateMeetingSessionDTO, authUser: IActiveUser) {
-    console.log("authUser", authUser);
     const newRoom = await this.createOneBase({
       roomName: this.generateMetingRoomName(),
       createdBy: {
@@ -46,7 +45,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     });
 
     const connectionDetails = await this.liveKitService.getConnectionDetails({
-      identity: crypto.randomUUID(),
+      identity: randomString(5),
       roomName: newRoom?.roomName,
       participantName: authUser?.name,
     });

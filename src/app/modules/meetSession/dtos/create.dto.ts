@@ -19,6 +19,7 @@ export class RequestMeetingSessionDTO extends BaseCreateDTO {
   @ApiProperty({
     description: "Name of the room for the meeting session",
     example: "Room123",
+    required: false,
   })
   @IsString()
   @IsNotEmpty()

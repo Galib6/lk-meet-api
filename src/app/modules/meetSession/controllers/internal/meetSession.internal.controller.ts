@@ -65,9 +65,9 @@ export class InternalMeetingSessionController {
     return this.service.updateOneBase(id, body, { relations: this.RELATIONS });
   }
 
-  @Post("/request")
+  @Get("/request")
   async findById(
-    @Body() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @Param() requestMeetingSessionDTO: RequestMeetingSessionDTO,
     @ActiveUser() authUser: IActiveUser
   ): Promise<SuccessResponse | any> {
     return await this.service.RequestSessionDetails(
