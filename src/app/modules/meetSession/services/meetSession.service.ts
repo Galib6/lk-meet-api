@@ -159,7 +159,6 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
 
     try {
       for (const user of body.requestsIds) {
-        console.log("user", user);
         const isExists = await this.meetingSessionUserService.findOneBase(
           {
             meetingSession: {
@@ -188,7 +187,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
           const details = await this.liveKitService.getConnectionDetails({
             roomName: meetingSession?.roomName,
             identity: crypto.randomUUID(),
-            participantName: authUser?.name,
+            participantName: `${isExists?.user?.firstName} ${isExists?.user?.lastName}`,
           });
 
           await this.meetingSessionGateway.sendDataToSingleUser(
