@@ -199,7 +199,7 @@ export class AuthService {
     const tokenPayload = {
       user: {
         id: user.id,
-        name: user?.firstName + " " + user?.lastName,
+        name: user?.fullName,
         roles,
       },
     };

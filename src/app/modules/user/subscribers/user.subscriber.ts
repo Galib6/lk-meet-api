@@ -11,7 +11,7 @@ import { User } from "../entities/user.entity";
 export class UserSubscriber implements EntitySubscriberInterface<User> {
   constructor(
     dataSource: DataSource,
-    private readonly bcryptHelper: BcryptHelper,
+    private readonly bcryptHelper: BcryptHelper
   ) {
     dataSource.subscribers.push(this);
   }
@@ -23,15 +23,21 @@ export class UserSubscriber implements EntitySubscriberInterface<User> {
   async beforeInsert(event: InsertEvent<User>) {
     if (event.entity.password) {
       event.entity.password = await this.bcryptHelper.hash(
-        event.entity.password,
+        event.entity.password
       );
+    }
+
+    if (event.entity.firstName || event.entity.lastName) {
+      event.entity.fullName = `${event.entity.firstName ?? ""}${
+        event.entity.lastName ? ` ${event.entity.lastName}` : ""
+      }`.trim();
     }
   }
 
   async beforeUpdate(event: InsertEvent<User>) {
     if (event.entity.password) {
       event.entity.password = await this.bcryptHelper.hash(
-        event.entity.password,
+        event.entity.password
       );
     }
   }
