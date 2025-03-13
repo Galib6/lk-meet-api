@@ -103,9 +103,9 @@ jobs:
           SUPER_ADMIN_EMAIL: galib@gmail.com
           SUPER_ADMIN_PASSWORD: 123456
 
-          LIVEKIT_API_KEY: APIUMXGowx3ULW5
-          LIVEKIT_API_SECRET: GLUz2s3MQfOfxWezLMStXhfN1HqBV3Pd1tpKi60emAaA
-          LIVEKIT_SERVER_URL: wss://livekit.visathing.com
+          LIVEKIT_API_KEY: galib
+          LIVEKIT_API_SECRET: 123456galib
+          LIVEKIT_SERVER_URL: wss://r-tech.live
 
       - name: Logging to docker
         run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
