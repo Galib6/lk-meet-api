@@ -11,11 +11,11 @@ export class MeetingSessionUser extends BaseEntity {
     type: ENUM_COLUMN_TYPES.VARCHAR,
     nullable: false,
   })
-  approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS;
+  approvalType?: ENUM_MEETING_ENTRY_APPROVAL_STATUS;
 
   @ManyToOne((t) => MeetingSession)
-  meetingSession: MeetingSession;
+  meetingSession?: MeetingSession;
 
   @ManyToOne((t) => User)
-  user: User;
+  user?: User;
 }

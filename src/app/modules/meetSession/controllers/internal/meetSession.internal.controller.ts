@@ -15,6 +15,7 @@ import { SuccessResponse } from "@src/app/types";
 import { ChangeRequestStatusDTO } from "../../dtos/acceptRequest.dto";
 import {
   CreateMeetingSessionDTO,
+  GetMeetingSessionRequest,
   RequestMeetingSessionDTO,
 } from "../../dtos/create.dto";
 import { UpdateMeetingSessionDTO } from "../../dtos/update.dto";
@@ -44,9 +45,9 @@ export class InternalMeetingSessionController {
 
   @Get("/request-list")
   async findAll(
-    @Query() roomName: string
+    @Query() query: GetMeetingSessionRequest
   ): Promise<SuccessResponse | MeetingSession[]> {
-    return await this.service.getPendingRequest(roomName);
+    return await this.service.getPendingRequest(query?.roomName);
   }
 
   @Post("create")
@@ -67,7 +68,7 @@ export class InternalMeetingSessionController {
 
   @Get("/request")
   async findById(
-    @Param() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
     @ActiveUser() authUser: IActiveUser
   ): Promise<SuccessResponse | any> {
     return await this.service.RequestSessionDetails(
@@ -76,7 +77,7 @@ export class InternalMeetingSessionController {
     );
   }
 
-  @Post("/change-request-status")
+  @Post("/update-request-status")
   async acceptRequest(
     @Body() changeRequestStatusDTO: ChangeRequestStatusDTO,
     @ActiveUser() authUser: IActiveUser

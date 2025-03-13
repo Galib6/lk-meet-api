@@ -8,12 +8,13 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "@src/app/base/base.service";
 import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { SuccessResponse } from "@src/app/types";
-import { asyncForEach, randomString } from "@src/shared";
+import { randomString } from "@src/shared";
 import { Repository } from "typeorm";
 import { LiveKitService } from "../../livekit/services/livekit.service";
 import {
   CONNECTION_DETAILS,
   NEW_REQUEST,
+  REQ_REJECTED,
 } from "../../socket/gateways/constants";
 import { MeetingSessionGateway } from "../../socket/gateways/meetingSession.gateway";
 import { ChangeRequestStatusDTO } from "../dtos/acceptRequest.dto";
@@ -77,7 +78,10 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       await this.meetingSessionGateway.sendDataToSingleUser(
         authUser?.id,
         CONNECTION_DETAILS,
-        details
+        {
+          ...details,
+          isAdmin: authUser?.id === meetingSession?.createdBy?.id,
+        }
       );
     };
 
@@ -87,8 +91,13 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     }
 
     const userStatus = await this.meetingSessionUserService.findOne({
-      where: { user: { id: authUser?.id } },
-      relations: ["createdBy"],
+      where: {
+        user: { id: authUser?.id },
+        meetingSession: {
+          roomName: roomName,
+        },
+      },
+      relations: ["createdBy", "meetingSession"],
     });
 
     if (userStatus?.id) {
@@ -96,7 +105,16 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.rejected:
           throw new BadRequestException("Not Allowed");
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending:
-          throw new BadRequestException("wait for admin acceptance");
+          await this.meetingSessionGateway.sendDataToSingleUser(
+            meetingSession?.createdBy?.id,
+            NEW_REQUEST,
+            {
+              message: "New enter request arrived",
+              name: authUser?.name,
+              id: authUser?.id,
+            }
+          );
+          throw new BadRequestException("Please wait for admin acceptance");
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.approved:
           await getConnectionDetailsAndSend();
           return new SuccessResponse("");
@@ -112,7 +130,11 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     await this.meetingSessionGateway.sendDataToSingleUser(
       meetingSession?.createdBy?.id,
       NEW_REQUEST,
-      { type: "New enter request arrived" }
+      {
+        type: "New enter request arrived",
+        name: authUser?.name,
+        id: authUser?.id,
+      }
     );
 
     return new SuccessResponse("");
@@ -127,41 +149,72 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       relations: ["createdBy"],
     });
 
+    console.log("meetingSession", body, meetingSession);
+
     if (authUser?.id !== meetingSession?.createdBy?.id)
       throw new UnauthorizedException();
 
     if (!meetingSession?.roomName)
       throw new NotFoundException("room not found");
 
-    asyncForEach(body.requestsIds, async (user) => {
-      const isExists = await this.meetingSessionUserService.findOneBase({
-        meetingSession: {
-          id: meetingSession?.id,
-        },
-        user: {
-          id: user,
-        },
-        approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.approved,
-      });
+    try {
+      for (const user of body.requestsIds) {
+        console.log("user", user);
+        const isExists = await this.meetingSessionUserService.findOneBase(
+          {
+            meetingSession: {
+              id: meetingSession?.id,
+            },
+            user: {
+              id: user,
+            },
+          },
+          {
+            relations: ["meetingSession", "user"],
+          }
+        );
 
-      if (!isExists) throw new NotFoundException("");
+        if (!isExists) {
+          throw new NotFoundException(
+            `User request not found for user ID: ${user}`
+          );
+        }
 
-      await this.meetingSessionUserService.updateOneBase(isExists?.id, {
-        approvalType: body?.status,
-      });
+        await this.meetingSessionUserService.updateOneBase(isExists?.id, {
+          approvalType: body?.status,
+        });
 
-      const details = await this.liveKitService.getConnectionDetails({
-        roomName: meetingSession?.roomName,
-        identity: crypto.randomUUID(),
-        participantName: authUser?.name,
-      });
+        if (body.status === ENUM_MEETING_ENTRY_APPROVAL_STATUS.approved) {
+          const details = await this.liveKitService.getConnectionDetails({
+            roomName: meetingSession?.roomName,
+            identity: crypto.randomUUID(),
+            participantName: authUser?.name,
+          });
 
-      await this.meetingSessionGateway.sendDataToSingleUser(
-        user,
-        CONNECTION_DETAILS,
-        details
+          await this.meetingSessionGateway.sendDataToSingleUser(
+            user,
+            CONNECTION_DETAILS,
+            details
+          );
+        }
+        if (body.status === ENUM_MEETING_ENTRY_APPROVAL_STATUS.rejected) {
+          await this.meetingSessionGateway.sendDataToSingleUser(
+            user,
+            REQ_REJECTED,
+            { message: "Request Rejected!" }
+          );
+        }
+      }
+
+      return new SuccessResponse("Request status updated successfully");
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        error?.message || "Failed to process request status changes"
       );
-    });
+    }
   }
 
   async getPendingRequest(roomName: string) {
@@ -172,7 +225,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
         },
         approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending,
       },
-      relations: ["meetingSession"],
+      relations: ["meetingSession", "user"],
     });
   }
 
