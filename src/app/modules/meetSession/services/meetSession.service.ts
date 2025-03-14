@@ -80,14 +80,15 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
         CONNECTION_DETAILS,
         {
           ...details,
-          isAdmin: authUser?.id === meetingSession?.createdBy?.id,
         }
       );
     };
 
     if (authUser?.id === meetingSession?.createdBy?.id) {
       await getConnectionDetailsAndSend();
-      return new SuccessResponse("");
+      return {
+        userType: "admin",
+      };
     }
 
     const userStatus = await this.meetingSessionUserService.findOne({
@@ -117,7 +118,9 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
           throw new BadRequestException("Please wait for admin acceptance");
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.approved:
           await getConnectionDetailsAndSend();
-          return new SuccessResponse("");
+          return {
+            userType: "participant",
+          };
       }
     }
 
@@ -137,7 +140,9 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       }
     );
 
-    return new SuccessResponse("");
+    return {
+      userType: "participant",
+    };
   }
 
   async ChangeRequestStatus(
@@ -148,8 +153,6 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       where: { roomName: body?.roomName },
       relations: ["createdBy"],
     });
-
-    console.log("meetingSession", body, meetingSession);
 
     if (authUser?.id !== meetingSession?.createdBy?.id)
       throw new UnauthorizedException();
