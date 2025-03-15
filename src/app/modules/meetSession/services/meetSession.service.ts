@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotAcceptableException,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -58,7 +59,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     return new SuccessResponse("");
   }
 
-  async RequestSessionDetails(roomName: string, authUser: IActiveUser) {
+  async RequestOnHold(roomName: string, authUser: IActiveUser) {
     const meetingSession = await this.findOne({
       where: { roomName },
       relations: ["createdBy"],
@@ -104,7 +105,13 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     if (userStatus?.id) {
       switch (userStatus.approvalType) {
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.rejected:
-          throw new BadRequestException("Not Allowed");
+          throw new NotAcceptableException(
+            "You are not allowed to this meeting session, Please contact with admin!"
+          );
+        case ENUM_MEETING_ENTRY_APPROVAL_STATUS.onHold:
+          throw new BadRequestException(
+            "Please wait until admin's acceptance!"
+          );
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending:
           await this.meetingSessionGateway.sendDataToSingleUser(
             meetingSession?.createdBy?.id,
@@ -125,6 +132,49 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     }
 
     await this.meetingSessionUserService.createOneBase({
+      approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.onHold,
+      user: { id: authUser?.id },
+      meetingSession: { id: meetingSession?.id },
+    });
+
+    // await this.meetingSessionGateway.sendDataToSingleUser(
+    //   meetingSession?.createdBy?.id,
+    //   NEW_REQUEST,
+    //   {
+    //     type: "New enter request arrived",
+    //     name: authUser?.name,
+    //     id: authUser?.id,
+    //   }
+    // );
+
+    return {
+      userType: "participant",
+    };
+  }
+
+  async findParticipantList(roomName: string, authUser: IActiveUser) {
+    const meetingSession = await this.findOne({
+      where: { roomName },
+      relations: ["createdBy"],
+    });
+
+    if (!meetingSession?.id) throw new NotFoundException("room not found");
+    if (meetingSession.sessionEnded)
+      throw new BadRequestException("meeting already ended");
+    return await this.liveKitService.listParticipants(roomName);
+  }
+
+  async sendJoinRequest(roomName: string, authUser: IActiveUser) {
+    const meetingSession = await this.findOne({
+      where: { roomName },
+      relations: ["createdBy"],
+    });
+
+    if (!meetingSession?.id) throw new NotFoundException("room not found");
+    if (meetingSession.sessionEnded)
+      throw new BadRequestException("meeting already ended");
+
+    await this.meetingSessionUserService.createOneBase({
       approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending,
       user: { id: authUser?.id },
       meetingSession: { id: meetingSession?.id },
@@ -140,9 +190,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       }
     );
 
-    return {
-      userType: "participant",
-    };
+    return new SuccessResponse("");
   }
 
   async ChangeRequestStatus(

@@ -51,7 +51,9 @@ export class LiveKitService {
 
   async listParticipants(roomName: string): Promise<any[]> {
     const participants = await this.roomService.listParticipants(roomName);
-    return participants;
+    return participants.map((item) => ({
+      name: item?.name,
+    }));
   }
 
   async getConnectionDetails(body: GetConnectionDetailsDTO) {

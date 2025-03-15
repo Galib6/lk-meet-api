@@ -66,12 +66,34 @@ export class InternalMeetingSessionController {
     return this.service.updateOneBase(id, body, { relations: this.RELATIONS });
   }
 
-  @Get("/request")
+  @Get("/send-req-on-hold")
   async findById(
     @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
     @ActiveUser() authUser: IActiveUser
   ): Promise<SuccessResponse | any> {
-    return await this.service.RequestSessionDetails(
+    return await this.service.RequestOnHold(
+      requestMeetingSessionDTO?.roomName,
+      authUser
+    );
+  }
+
+  @Get("/participant-list")
+  async findParticipantList(
+    @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @ActiveUser() authUser: IActiveUser
+  ): Promise<SuccessResponse | any> {
+    return await this.service.findParticipantList(
+      requestMeetingSessionDTO?.roomName,
+      authUser
+    );
+  }
+
+  @Post("/send-join-req")
+  async sendJoinRequest(
+    @Body() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @ActiveUser() authUser: IActiveUser
+  ): Promise<SuccessResponse | any> {
+    return await this.service.sendJoinRequest(
       requestMeetingSessionDTO?.roomName,
       authUser
     );

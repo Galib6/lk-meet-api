@@ -7,4 +7,5 @@ export enum ENUM_MEETING_ENTRY_APPROVAL_STATUS {
   approved = "approved",
   rejected = "rejected",
   pending = "pending",
+  onHold = "on-hold",
 }
