@@ -86,6 +86,31 @@ export class LiveKitService {
     return token.toJwt();
   }
 
+  async muteAllParticipants(roomName: string): Promise<void> {
+    try {
+      const participants = await this.roomService.listParticipants(roomName);
+
+      for (const participant of participants) {
+        participant?.tracks?.forEach(async (e) => {
+          await this.roomService.mutePublishedTrack(
+            roomName,
+            participant.sid,
+            e.sid,
+            true
+          );
+        });
+      }
+
+      console.log(`All participants in room "${roomName}" have been muted.`);
+    } catch (error) {
+      console.error(
+        `Failed to mute participants in room "${roomName}":`,
+        error
+      );
+      throw error;
+    }
+  }
+
   // List all rooms
   async listRooms(): Promise<string[]> {
     const rooms = await this.roomService.listRooms();

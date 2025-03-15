@@ -109,9 +109,9 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
             "You are not allowed to this meeting session, Please contact with admin!"
           );
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.onHold:
-          throw new BadRequestException(
-            "Please wait until admin's acceptance!"
-          );
+          return {
+            userType: "participant",
+          };
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending:
           await this.meetingSessionGateway.sendDataToSingleUser(
             meetingSession?.createdBy?.id,
@@ -151,6 +151,27 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       userType: "participant",
     };
   }
+  async muteAllParticipants(roomName: string): Promise<void> {
+    return await this.liveKitService.muteAllParticipants(roomName);
+  }
+
+  async findRequestSendStatus(roomName: string, authUser: IActiveUser) {
+    const res = await this.meetingSessionUserService.findOne({
+      where: {
+        meetingSession: {
+          roomName: roomName,
+        },
+        user: {
+          id: authUser?.id,
+        },
+        approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending,
+      },
+    });
+
+    return {
+      sent: res?.id ? true : false,
+    };
+  }
 
   async findParticipantList(roomName: string, authUser: IActiveUser) {
     const meetingSession = await this.findOne({
@@ -174,7 +195,18 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     if (meetingSession.sessionEnded)
       throw new BadRequestException("meeting already ended");
 
-    await this.meetingSessionUserService.createOneBase({
+    const meetingSessionUser = await this.meetingSessionUserService.findOne({
+      where: {
+        meetingSession: {
+          id: meetingSession?.id,
+        },
+        user: {
+          id: authUser?.id,
+        },
+      },
+    });
+
+    await this.meetingSessionUserService.updateOneBase(meetingSessionUser?.id, {
       approvalType: ENUM_MEETING_ENTRY_APPROVAL_STATUS.pending,
       user: { id: authUser?.id },
       meetingSession: { id: meetingSession?.id },
@@ -210,8 +242,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
 
     try {
       for (const user of body.requestsIds) {
-        const isExists = await this.meetingSessionUserService.findOneBase(
-          {
+        const isExists = await this.meetingSessionUserService.findOne({
+          where: {
             meetingSession: {
               id: meetingSession?.id,
             },
@@ -219,10 +251,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
               id: user,
             },
           },
-          {
-            relations: ["meetingSession", "user"],
-          }
-        );
+          relations: ["meetingSession", "user"],
+        });
 
         if (!isExists) {
           throw new NotFoundException(

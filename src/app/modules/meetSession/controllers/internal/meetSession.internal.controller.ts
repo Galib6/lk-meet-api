@@ -77,6 +77,27 @@ export class InternalMeetingSessionController {
     );
   }
 
+  @Get("/find-request-send-status")
+  async findRequestSendStatus(
+    @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @ActiveUser() authUser: IActiveUser
+  ): Promise<SuccessResponse | any> {
+    return await this.service.findRequestSendStatus(
+      requestMeetingSessionDTO?.roomName,
+      authUser
+    );
+  }
+
+  @Get("/mute-all")
+  async findMuteAllParticipants(
+    @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
+    @ActiveUser() authUser: IActiveUser
+  ): Promise<SuccessResponse | any> {
+    return await this.service.muteAllParticipants(
+      requestMeetingSessionDTO?.roomName
+    );
+  }
+
   @Get("/participant-list")
   async findParticipantList(
     @Query() requestMeetingSessionDTO: RequestMeetingSessionDTO,
