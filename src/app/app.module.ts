@@ -1,6 +1,7 @@
 import { CacheModule } from "@nestjs/cache-manager";
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { ScheduleModule } from "@nestjs/schedule";
 import { RateLimitModule } from "@src/app/modules/throttler/rateLimit.module";
 import { DatabaseModule } from "@src/database/database.module";
 import { AppController } from "./app.controller";
@@ -27,6 +28,7 @@ const MODULES = [
     GuardsModule,
     RateLimitModule,
     CacheModule.register({ isGlobal: true, max: 100, ttl: 30 }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [

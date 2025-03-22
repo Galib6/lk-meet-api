@@ -5,12 +5,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "@src/app/base/base.service";
 import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { SuccessResponse } from "@src/app/types";
 import { randomString } from "@src/shared";
-import { Repository } from "typeorm";
+import { In, Not, Repository } from "typeorm";
 import { LiveKitService } from "../../livekit/services/livekit.service";
 import {
   CONNECTION_DETAILS,
@@ -35,6 +36,26 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     private readonly liveKitService: LiveKitService
   ) {
     super(_repo);
+  }
+
+  @Cron("0 * * * * *")
+  async handleExpiredSessions() {
+    const roomList = await this.liveKitService.listRooms();
+    try {
+      await this.repo.update(
+        {
+          roomName: Not(In(roomList)),
+        },
+        {
+          sessionEnded: true,
+        }
+      );
+    } catch (error) {
+      console.log(
+        "🚀😬 ~ MeetingSessionService ~ handleExpiredSessions ~ error:",
+        error
+      );
+    }
   }
 
   async createSession(body: CreateMeetingSessionDTO, authUser: IActiveUser) {
