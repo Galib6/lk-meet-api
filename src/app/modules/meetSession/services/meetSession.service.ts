@@ -86,7 +86,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       relations: ["createdBy"],
     });
 
-    if (!meetingSession?.id) throw new NotFoundException("room not found");
+    if (!meetingSession?.id)
+      throw new NotFoundException("Meeting session not found");
     if (meetingSession.sessionEnded)
       throw new BadRequestException("meeting already ended");
 
@@ -200,7 +201,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       relations: ["createdBy"],
     });
 
-    if (!meetingSession?.id) throw new NotFoundException("room not found");
+    if (!meetingSession?.id)
+      throw new NotFoundException("Meeting session not found");
     if (meetingSession.sessionEnded)
       throw new BadRequestException("meeting already ended");
     return await this.liveKitService.listParticipants(roomName);
@@ -212,7 +214,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       relations: ["createdBy"],
     });
 
-    if (!meetingSession?.id) throw new NotFoundException("room not found");
+    if (!meetingSession?.id)
+      throw new NotFoundException("Meeting session not found");
     if (meetingSession.sessionEnded)
       throw new BadRequestException("meeting already ended");
 
@@ -259,7 +262,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
       throw new UnauthorizedException();
 
     if (!meetingSession?.roomName)
-      throw new NotFoundException("room not found");
+      throw new NotFoundException("Meeting session not found");
 
     try {
       for (const user of body.requestsIds) {
