@@ -37,12 +37,33 @@ export class MeetingSessionGateway
     }
   }
 
-  async sendDataToSingleUser(userId: number, eventName: string, data: any) {
-    const userDetails = this.users[userId];
-    if (userDetails && userDetails?.socketIds?.length) {
-      userDetails?.socketIds?.forEach((id) => {
-        this.server.to(id).emit(eventName, data);
-      });
+  async sendDataToSingleUser(userId: number, eventName: string, data: any, socketId: string) {
+    const retryCount = 5
+    const sendData = async (): Promise<boolean> => {
+      const userDetails = this.users[userId];
+      if (userDetails && userDetails?.socketIds?.length) {
+        const socketId = userDetails?.socketIds?.find(item=> item === socketId)
+      if(socketId){
+        this.server.to(socketId).emit(eventName, data);
+      }
+        return true;
+      }
+      return false;
+    };
+
+    // First attempt
+    if (await sendData()) {
+      return true;
     }
+
+    // Retry logic
+    for (let i = 0; i < retryCount; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+      if (await sendData()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

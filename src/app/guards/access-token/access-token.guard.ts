@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { REQUEST_USER_KEY } from "@src/app/constants/keys.constants";
+import { REQUEST_USER_KEY, SOCKET_ID } from "@src/app/constants/keys.constants";
 import { RequestMethods } from "@src/app/enums/common.enums";
 import { ENV } from "@src/env";
 import { Request } from "express";
@@ -39,6 +39,7 @@ export class AccessTokenGuard implements CanActivate {
         secret: ENV.jwt.secret,
       });
       request[REQUEST_USER_KEY] = payload.user;
+      request[SOCKET_ID] = payload.socketId;
 
       //inserting createdBy and updatedBy
       if (request.method === RequestMethods.POST) {

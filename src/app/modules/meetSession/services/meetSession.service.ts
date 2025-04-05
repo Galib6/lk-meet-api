@@ -75,7 +75,8 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     await this.meetingSessionGateway.sendDataToSingleUser(
       authUser?.id,
       CONNECTION_DETAILS,
-      connectionDetails
+      connectionDetails,
+      authUser.socketId
     );
     return new SuccessResponse("");
   }
@@ -90,7 +91,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     if (meetingSession.sessionEnded)
       throw new BadRequestException("meeting already ended");
 
-    const getConnectionDetailsAndSend = async () => {
+    const getConnectionDetailsAndSend = async (socketId: string) => {
       const details = await this.liveKitService.getConnectionDetails({
         roomName,
         identity: crypto.randomUUID(),
@@ -102,12 +103,13 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
         CONNECTION_DETAILS,
         {
           ...details,
-        }
+        },
+        socketId
       );
     };
 
     if (authUser?.id === meetingSession?.createdBy?.id) {
-      await getConnectionDetailsAndSend();
+      await getConnectionDetailsAndSend(authUser.socketId);
       return {
         userType: "admin",
       };
@@ -145,7 +147,7 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
           );
           throw new BadRequestException("Please wait for admin acceptance");
         case ENUM_MEETING_ENTRY_APPROVAL_STATUS.approved:
-          await getConnectionDetailsAndSend();
+          await getConnectionDetailsAndSend(authUser?.socketId);
           return {
             userType: "participant",
           };
