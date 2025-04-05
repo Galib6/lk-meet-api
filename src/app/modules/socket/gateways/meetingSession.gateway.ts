@@ -4,45 +4,58 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 
 @WebSocketGateway({ namespace: "/meeting-session", cors: { origin: "*" } })
 export class MeetingSessionGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor() {}
-
   @WebSocketServer() server: Server;
-  users: Record<number, { socketIds: string[] }> = {};
 
-  async handleConnection(client: any) {
+  // Keep only one socket per user
+  users: Record<number, string> = {};
+
+  async handleConnection(client: Socket) {
     const userId = Number(client.handshake.query.userId);
     if (!userId) {
       client.disconnect();
       return;
     }
-    if (this.users[userId]) {
-      this.users[userId].socketIds.push(client?.id);
-      return;
-    }
-    this.users[userId] = { socketIds: [client.id] };
+
+    // Register the new connection
+    this.users[userId] = client.id;
   }
 
-  async handleDisconnect(client: any) {
-    const userId = Number(client?.handshake?.query?.userId);
-    if (userId) {
-      this.users[userId].socketIds = this.users[userId].socketIds.filter(
-        (id) => id !== client?.id
-      );
+  async handleDisconnect(client: Socket) {
+    const userId = Number(client.handshake.query.userId);
+    if (userId && this.users[userId] === client.id) {
+      delete this.users[userId];
     }
   }
 
-  async sendDataToSingleUser(userId: number, eventName: string, data: any) {
-    const userDetails = this.users[userId];
-    if (userDetails && userDetails?.socketIds?.length) {
-      userDetails?.socketIds?.forEach((id) => {
-        this.server.to(id).emit(eventName, data);
-      });
+  async sendDataToSingleUser(
+    userId: number,
+    eventName: string,
+    data: any
+  ): Promise<boolean> {
+    const retryCount = 5;
+
+    const sendData = async (): Promise<boolean> => {
+      const socketId = this.users[userId];
+      if (socketId) {
+        this.server.to(socketId).emit(eventName, data);
+        return true;
+      }
+      return false;
+    };
+
+    if (await sendData()) return true;
+
+    for (let i = 0; i < retryCount; i++) {
+      await new Promise((res) => setTimeout(res, 1000));
+      if (await sendData()) return true;
     }
+
+    return false;
   }
 }
