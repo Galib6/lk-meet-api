@@ -145,15 +145,6 @@ jobs:
             echo "Logging to docker hub"
             docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
 
-            echo "Stopping previous build"
-            docker stop ${{ env.APP_NAME }}
-
-            echo "Removing previous build"
-            docker rm ${{ env.APP_NAME }}
-
-            echo "Removing old image from local"
-            docker rmi ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
-
             echo "Pulling latest image from docker hub"
             docker pull ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
 
@@ -198,8 +189,8 @@ jobs:
               ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
             echo "Health check on port $NEW_PORT..."
-            for i in {1..10}; do
-              sleep 5
+            for i in {1..20}; do
+              sleep 8
               if curl -sSf http://localhost:$NEW_PORT/api/v1 > /dev/null; then
                 echo "Service healthy on port $NEW_PORT"
                 break
