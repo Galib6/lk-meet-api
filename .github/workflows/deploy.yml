@@ -196,7 +196,7 @@ jobs:
             echo "Performing health check on port $NEW_PORT..."
             for i in {1..20}; do
               sleep 5
-              if curl -sSf http://localhost:$NEW_PORT/health > /dev/null; then
+              if curl -sSf http://localhost:$NEW_PORT/api/v1/health > /dev/null; then
                 echo "✅ Service is healthy on port $NEW_PORT"
                 break
               elif [ $i -eq 20 ]; then
