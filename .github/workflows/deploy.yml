@@ -168,60 +168,53 @@ jobs:
             echo "Logging into Docker"
             docker login -u ${{ env.DOCKER_USER }} -p ${{ env.DOCKER_PASSWORD }}
 
-            NGINX_CONF="/etc/nginx/sites-enabled/meet-api.r-tech.live"
+            echo "Detecting current Nginx port (if any)..."
+            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.r-tech.live || echo "")
 
-            echo "Detecting current port in Nginx config..."
-            if grep -q "proxy_pass http://127.0.0.1:" "$NGINX_CONF"; then
-              CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' "$NGINX_CONF")
-
-              if [ "$CURRENT_PORT" == "6800" ]; then
-                NEW_PORT=6801
-                OLD_CONTAINER=meet-live-api-6800
-                NEW_CONTAINER=meet-live-api-6801
-              else
-                NEW_PORT=6800
-                OLD_CONTAINER=meet-live-api-6801
-                NEW_CONTAINER=meet-live-api-6800
-              fi
-
-              echo "Starting new container on port $NEW_PORT"
-              docker run -d --name $NEW_CONTAINER \
-                -e NODE_ENV=production \
-                --restart always \
-                -p $NEW_PORT:6800 \
-                -v /var/www/uploads:/uploads \
-                ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
-
-              echo "Performing health check on port $NEW_PORT..."
-              for i in {1..20}; do
-                sleep 6
-                if curl -sSf http://localhost:$NEW_PORT/api/v1 > /dev/null; then
-                  echo "✅ Service healthy on port $NEW_PORT"
-                  break
-                elif [ $i -eq 20 ]; then
-                  echo "❌ Health check failed"
-                  docker rm -f $NEW_CONTAINER
-                  exit 1
-                fi
-              done
-
-              echo "🔄 Updating Nginx to new port $NEW_PORT"
-              sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" "$NGINX_CONF"
-              nginx -s reload
-
-              echo "🧹 Removing old container: $OLD_CONTAINER"
-              docker rm -f $OLD_CONTAINER || true
-
+            if [ -z "$CURRENT_PORT" ]; then
+              echo "No previous deployment found. Using 6800"
+              NEW_PORT=6800
+              NEW_CONTAINER=meet-live-api-6800
+            elif [ "$CURRENT_PORT" == "6800" ]; then
+              NEW_PORT=6801
+              OLD_CONTAINER=meet-live-api-6800
+              NEW_CONTAINER=meet-live-api-6801
             else
-              echo "🚨 First-time deployment detected: deploying on default port 6800"
-              docker run -d --name meet-live-api-6800 \
-                -e NODE_ENV=production \
-                --restart always \
-                -p 6800:6800 \
-                -v /var/www/uploads:/uploads \
-                ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
+              NEW_PORT=6800
+              OLD_CONTAINER=meet-live-api-6801
+              NEW_CONTAINER=meet-live-api-6800
+            fi
 
-              echo "⚠️ Please update Nginx manually to point to 127.0.0.1:6800 if needed."
+            echo "Starting new container on port $NEW_PORT"
+            docker run -d --name $NEW_CONTAINER \
+              -e NODE_ENV=production \
+              --restart always \
+              -p $NEW_PORT:6800 \
+              -v /var/www/uploads:/uploads \
+              ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
+
+            echo "Performing health check on port $NEW_PORT..."
+            for i in {1..20}; do
+              sleep 5
+              if curl -sSf http://localhost:$NEW_PORT/health > /dev/null; then
+                echo "✅ Service is healthy on port $NEW_PORT"
+                break
+              elif [ $i -eq 20 ]; then
+                echo "❌ Health check failed. Leaving container $NEW_CONTAINER for inspection."
+                docker logs $NEW_CONTAINER || true
+                exit 1
+              fi
+            done
+
+            echo "Updating Nginx config to use port $NEW_PORT"
+            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.r-tech.live
+
+            echo "Reloading Nginx"
+            nginx -s reload
+
+            if [ ! -z "$OLD_CONTAINER" ]; then
+              echo "Cleaning up old container: $OLD_CONTAINER"
+              docker rm -f $OLD_CONTAINER || true
             fi
 
             echo "✅ Deployment complete"

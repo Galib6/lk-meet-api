@@ -8,6 +8,8 @@ import {
   ApiServiceUnavailableResponse,
 } from "@nestjs/swagger";
 import { AppService } from "./app.service";
+import { Auth } from "./decorators";
+import { AuthType } from "./enums/auth-type.enum";
 
 @Controller()
 export class AppController {
@@ -25,5 +27,12 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  // in app.controller.ts
+  @Get("/health")
+  @Auth(AuthType.None)
+  health() {
+    return { status: "ok" };
   }
 }
