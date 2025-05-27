@@ -23,17 +23,19 @@ env:
   GOOGLE_REDIRECT_URL: ${{ secrets.GOOGLE_REDIRECT_URL }}
 
 jobs:
-  Build:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Generate .env
         run: |
           envsubst "`printf '${%s} ' $(sh -c "env|cut -d'=' -f1")`" < ./environments/prod.example.env > ./environments/$NODE_ENV.env
-          echo "$(cat ./environments/$NODE_ENV.env)"
+          echo "Generated environment file:"
+          cat ./environments/$NODE_ENV.env
         env:
           PORT: ${{ env.PORT }}
           APP_ENV: ${{ env.APP_ENV }}
@@ -63,7 +65,7 @@ jobs:
           RATE_LIMIT_TTL: 60000
           RATE_LIMIT_MAX: 100
 
-          # Loggerinternal
+          # Logger
           LOG_FOLDER: logs
 
           # JWT
@@ -72,13 +74,6 @@ jobs:
           JWT_EXPIRES_IN: 30d
           JWT_REFRESH_TOKEN_EXPIRES_IN: 30d
 
-          # S3
-          # S3_ENDPOINT: sgp1.digitaloceanspaces.com
-          # S3_REGION: sgp1
-          # S3_ACCESS_KEY: DO801BPPZLV2AZMUE8XE
-          # S3_SECRET_KEY: KrlBqCkvNbfiFThRneuYT9soCRddt5rjVZrCNoS5XKs
-          # S3_BUCKET: buckecy1
-          # S3_FOLDER_PREFIX: marzan-blog-api
           # S3
           S3_ENDPOINT: sgp1.digitaloceanspaces.com
           S3_REGION: sgp1
@@ -114,78 +109,90 @@ jobs:
           LIVEKIT_API_SECRET: 123456galib
           LIVEKIT_SERVER_URL: wss://r-tech.live
 
-      - name: Logging to docker
-        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+      - name: Login to Docker Hub
+        run: echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
 
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+      - name: Build Docker image
+        run: |
+          docker build . --file Dockerfile --tag ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
+          docker tag ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:${{ github.sha }}
 
-      - name: Docker Push
-        run: docker push ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
+          docker push ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:${{ github.sha }}
 
-  Deploy:
-    needs: Build
-
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Logging to docker
-        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
-
-      - name: Deploy To Server
-        uses: appleboy/ssh-action@master
+      - name: Deploy to Server with Zero Downtime
+        uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.SERVER_HOST }}
           username: ${{ env.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          script: |
-            echo "Logging to docker hub"
-            docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
-
-            echo "Pulling latest image from docker hub"
-            docker pull ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
-
-  Run:
-    needs: Deploy
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Zero Downtime Deploy to Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.SERVER_HOST }}
-          username: ${{ env.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
+          password: ${{ env.SERVER_PASSWORD }}
+          timeout: 300s
+          command_timeout: 300s
           script: |
             set -e
 
-            echo "Logging into Docker"
-            docker login -u ${{ env.DOCKER_USER }} -p ${{ env.DOCKER_PASSWORD }}
+            # Enable error handling and logging
+            exec > >(tee -a /var/log/deploy.log) 2>&1
+            echo "=== Deployment started at $(date) ==="
 
-            echo "Detecting current Nginx port (if any)..."
-            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.r-tech.live || echo "")
+            # Login to Docker Hub
+            echo "Logging into Docker Hub..."
+            echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
 
-            if [ -z "$CURRENT_PORT" ]; then
-              echo "No previous deployment found. Using 6800"
-              NEW_PORT=6800
-              NEW_CONTAINER=meet-live-api-6800
-            elif [ "$CURRENT_PORT" == "6800" ]; then
-              NEW_PORT=6801
-              OLD_CONTAINER=meet-live-api-6800
-              NEW_CONTAINER=meet-live-api-6801
-            else
-              NEW_PORT=6800
-              OLD_CONTAINER=meet-live-api-6801
-              NEW_CONTAINER=meet-live-api-6800
+            # Pull latest image
+            echo "Pulling latest Docker image..."
+            docker pull ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
+
+            # Clean up any dangling images
+            docker image prune -f || true
+
+            # Detect current running container and port
+            echo "Detecting current deployment..."
+            CURRENT_PORT=""
+            OLD_CONTAINER=""
+
+            # Check if nginx config exists and get current port
+            if [ -f "/etc/nginx/sites-enabled/meet-api.r-tech.live" ]; then
+              CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.r-tech.live 2>/dev/null || echo "")
             fi
 
-            echo "Starting new container on port $NEW_PORT"
+            # Determine new port and container names
+            if [ -z "$CURRENT_PORT" ] || [ "$CURRENT_PORT" == "6800" ]; then
+              NEW_PORT=6801
+              NEW_CONTAINER=meet-live-api-6801
+              if [ "$CURRENT_PORT" == "6800" ]; then
+                OLD_CONTAINER=meet-live-api-6800
+              fi
+            else
+              NEW_PORT=6800
+              NEW_CONTAINER=meet-live-api-6800
+              OLD_CONTAINER=meet-live-api-6801
+            fi
+
+            echo "Current port: ${CURRENT_PORT:-none}"
+            echo "New port: $NEW_PORT"
+            echo "New container: $NEW_CONTAINER"
+            echo "Old container: ${OLD_CONTAINER:-none}"
+
+            # Stop and remove new container if it exists
+            if docker ps -a --format 'table {{.Names}}' | grep -q "^$NEW_CONTAINER$"; then
+              echo "Removing existing container: $NEW_CONTAINER"
+              docker rm -f $NEW_CONTAINER || true
+            fi
+
+            # Create uploads directory if it doesn't exist
+            mkdir -p /var/www/uploads
+
+            # Start new container
+            echo "Starting new container: $NEW_CONTAINER on port $NEW_PORT"
             docker run -d --name $NEW_CONTAINER \
               -e NODE_ENV=production \
               --restart always \
@@ -193,28 +200,95 @@ jobs:
               -v /var/www/uploads:/uploads \
               ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
+            # Wait for container to be ready
+            echo "Waiting for container to start..."
+            sleep 10
+
+            # Health check with better error handling
             echo "Performing health check on port $NEW_PORT..."
-            for i in {1..20}; do
-              sleep 5
-              if curl -sSf http://localhost:$NEW_PORT/api/v1/health > /dev/null; then
-                echo "✅ Service is healthy on port $NEW_PORT"
-                break
-              elif [ $i -eq 20 ]; then
-                echo "❌ Health check failed. Leaving container $NEW_CONTAINER for inspection."
-                docker logs $NEW_CONTAINER || true
+            HEALTH_CHECK_PASSED=false
+
+            for i in {1..30}; do
+              echo "Health check attempt $i/30..."
+              
+              # Check if container is still running
+              if ! docker ps --format 'table {{.Names}}' | grep -q "^$NEW_CONTAINER$"; then
+                echo "❌ Container $NEW_CONTAINER is not running!"
+                docker logs $NEW_CONTAINER 2>&1 | tail -50
                 exit 1
               fi
+              
+              # Check health endpoint
+              if curl -sSf --connect-timeout 5 --max-time 10 http://localhost:$NEW_PORT/api/v1/health > /dev/null 2>&1; then
+                echo "✅ Health check passed on port $NEW_PORT"
+                HEALTH_CHECK_PASSED=true
+                break
+              fi
+              
+              if [ $i -eq 30 ]; then
+                echo "❌ Health check failed after 30 attempts"
+                echo "Container logs:"
+                docker logs $NEW_CONTAINER 2>&1 | tail -50
+                exit 1
+              fi
+              
+              sleep 5
             done
 
-            echo "Updating Nginx config to use port $NEW_PORT"
-            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.r-tech.live
+            # Update Nginx configuration
+            if [ "$HEALTH_CHECK_PASSED" = true ]; then
+              echo "Updating Nginx configuration..."
+              
+              # Create nginx config if it doesn't exist
+              if [ ! -f "/etc/nginx/sites-enabled/meet-api.r-tech.live" ]; then
+                echo "Creating new Nginx configuration..."
+                cat > /etc/nginx/sites-enabled/meet-api.r-tech.live << EOF
+            server {
+                listen 80;
+                server_name meet-api.r-tech.live;
+                
+                location / {
+                    proxy_pass http://127.0.0.1:$NEW_PORT;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade \$http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                    proxy_cache_bypass \$http_upgrade;
+                }
+            }
+            EOF
+              else
+                # Update existing configuration
+                if [ -n "$CURRENT_PORT" ]; then
+                  sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.r-tech.live
+                else
+                  sed -i "s/proxy_pass http:\/\/127.0.0.1:[0-9]*;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.r-tech.live
+                fi
+              fi
 
-            echo "Reloading Nginx"
-            nginx -s reload
+              # Test nginx configuration
+              if nginx -t; then
+                echo "Reloading Nginx..."
+                nginx -s reload
+                echo "✅ Nginx reloaded successfully"
+              else
+                echo "❌ Nginx configuration test failed"
+                exit 1
+              fi
 
-            if [ ! -z "$OLD_CONTAINER" ]; then
-              echo "Cleaning up old container: $OLD_CONTAINER"
-              docker rm -f $OLD_CONTAINER || true
+              # Clean up old container after successful deployment
+              if [ -n "$OLD_CONTAINER" ]; then
+                echo "Cleaning up old container: $OLD_CONTAINER"
+                docker rm -f $OLD_CONTAINER || true
+              fi
+
+              # Clean up old images (keep last 3)
+              echo "Cleaning up old Docker images..."
+              docker images ${{ env.DOCKER_USER }}/${{ env.APP_NAME }} --format "table {{.Tag}}\t{{.ID}}" | grep -v "latest" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
+
+              echo "✅ Deployment completed successfully at $(date)"
+              echo "✅ Application is running on port $NEW_PORT"
             fi
-
-            echo "✅ Deployment complete"
