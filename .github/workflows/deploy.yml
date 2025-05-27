@@ -73,12 +73,19 @@ jobs:
           JWT_REFRESH_TOKEN_EXPIRES_IN: 30d
 
           # S3
+          # S3_ENDPOINT: sgp1.digitaloceanspaces.com
+          # S3_REGION: sgp1
+          # S3_ACCESS_KEY: DO801BPPZLV2AZMUE8XE
+          # S3_SECRET_KEY: KrlBqCkvNbfiFThRneuYT9soCRddt5rjVZrCNoS5XKs
+          # S3_BUCKET: buckecy1
+          # S3_FOLDER_PREFIX: marzan-blog-api
+          # S3
           S3_ENDPOINT: sgp1.digitaloceanspaces.com
           S3_REGION: sgp1
-          S3_ACCESS_KEY: DO801BPPZLV2AZMUE8XE
-          S3_SECRET_KEY: KrlBqCkvNbfiFThRneuYT9soCRddt5rjVZrCNoS5XKs
-          S3_BUCKET: buckecy1
-          S3_FOLDER_PREFIX: marzan-blog-api
+          S3_ACCESS_KEY: DO00J7N6BMX64HRNTKUN
+          S3_SECRET_KEY: Rqf25w+w9On9DLeIS5LIPa18kEWmEoXjKDHs5MOtW2Q
+          S3_BUCKET: unispaces
+          S3_FOLDER_PREFIX: nebula
 
           # Redis
           REDIS_HOST: 157.245.50.140
@@ -152,33 +159,96 @@ jobs:
 
   Run:
     needs: Deploy
-
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Logging to docker
-        run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
-
-      - name: Deploy To Server
+      - name: Zero Downtime Deploy to Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.SERVER_HOST }}
           username: ${{ env.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            echo "Logging to docker hub"
-            docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+            set -e
 
-            echo "Starting latest build"
+            echo "Logging into Docker"
+            docker login -u ${{ env.DOCKER_USER }} -p ${{ env.DOCKER_PASSWORD }}
 
-            docker run -e NODE_ENV=${{ env.APP_ENV }} -d \
+            echo "Detecting current port in Nginx config..."
+            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.r-tech.live)
+            if [ "$CURRENT_PORT" == "6800" ]; then
+              NEW_PORT=6801
+              OLD_CONTAINER=meet-live-api-6800
+              NEW_CONTAINER=meet-live-api-6801
+            else
+              NEW_PORT=6800
+              OLD_CONTAINER=meet-live-api-6801
+              NEW_CONTAINER=meet-live-api-6800
+            fi
+
+            echo "Starting container on new port $NEW_PORT"
+            docker run -d --name $NEW_CONTAINER \
+              -e NODE_ENV=production \
               --restart always \
-              -p ${{ env.PORT }}:${{ env.PORT }} \
+              -p $NEW_PORT:6800 \
               -v /var/www/uploads:/uploads \
-              --name ${{ env.APP_NAME }} \
-              ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+              ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
-            echo "Deploy Done"
+            echo "Health check on port $NEW_PORT..."
+            for i in {1..10}; do
+              sleep 5
+              if curl -sSf http://localhost:$NEW_PORT/api/v1 > /dev/null; then
+                echo "Service healthy on port $NEW_PORT"
+                break
+              elif [ $i -eq 10 ]; then
+                echo "Health check failed"
+                docker rm -f $NEW_CONTAINER
+                exit 1
+              fi
+            done
+
+            echo "Updating Nginx config"
+            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-live-api
+
+            echo "Reloading Nginx"
+            nginx -s reload
+
+            echo "Cleaning up old container: $OLD_CONTAINER"
+            docker rm -f $OLD_CONTAINER || true
+
+            echo "Deployment complete"
+  # Run:
+  #   needs: Deploy
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+
+  #     - name: Logging to docker
+  #       run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+  #     - name: Deploy To Server
+  #       uses: appleboy/ssh-action@master
+  #       with:
+  #         host: ${{ env.SERVER_HOST }}
+  #         username: ${{ env.SERVER_USER }}
+  #         password: ${{ secrets.SERVER_PASSWORD }}
+  #         script: |
+  #           echo "Logging to docker hub"
+  #           docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
+
+  #           echo "Starting latest build"
+
+  #           docker run -e NODE_ENV=${{ env.APP_ENV }} -d \
+  #             --restart always \
+  #             -p ${{ env.PORT }}:${{ env.PORT }} \
+  #             -v /var/www/uploads:/uploads \
+  #             --name ${{ env.APP_NAME }} \
+  #             ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
+
+  #           echo "Deploy Done"
