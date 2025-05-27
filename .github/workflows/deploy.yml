@@ -218,36 +218,3 @@ jobs:
             fi
 
             echo "✅ Deployment complete"
-
-  # Run:
-  #   needs: Deploy
-
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-
-  #     - name: Logging to docker
-  #       run: docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
-
-  #     - name: Deploy To Server
-  #       uses: appleboy/ssh-action@master
-  #       with:
-  #         host: ${{ env.SERVER_HOST }}
-  #         username: ${{ env.SERVER_USER }}
-  #         password: ${{ secrets.SERVER_PASSWORD }}
-  #         script: |
-  #           echo "Logging to docker hub"
-  #           docker login -u ${{env.DOCKER_USER}} -p ${{env.DOCKER_PASSWORD}}
-
-  #           echo "Starting latest build"
-
-  #           docker run -e NODE_ENV=${{ env.APP_ENV }} -d \
-  #             --restart always \
-  #             -p ${{ env.PORT }}:${{ env.PORT }} \
-  #             -v /var/www/uploads:/uploads \
-  #             --name ${{ env.APP_NAME }} \
-  #             ${{env.DOCKER_USER}}/${{ env.APP_NAME }}:latest
-
-  #           echo "Deploy Done"
