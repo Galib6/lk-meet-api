@@ -167,6 +167,7 @@ jobs:
               OLD_IMAGE=$(docker inspect --format='{{.Image}}' $OLD_CONTAINER)
               docker rm -f $OLD_CONTAINER || true
               docker rmi $OLD_IMAGE || true
+              docker image prune -f
             fi
 
             echo "✅ Deployment complete"
