@@ -10,6 +10,7 @@ import { setupSecurity } from "./security";
 import { setupSwagger } from "./swagger";
 
 const logger = new Logger();
+//test
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
