@@ -102,4 +102,14 @@ export const ENV = {
     email: envConfig.SEED_SUPER_ADMIN_EMAIL,
     password: envConfig.SEED_SUPER_ADMIN_PASSWORD,
   },
+
+  kafka: {
+    enabled: envConfig.KAFKA_ENABLED,
+    clientId: envConfig.KAFKA_CLIENT_ID,
+    kafkaBroker: envConfig.KAFKA_BROKER,
+    groupId: envConfig.KAFKA_GROUP_ID,
+    username: envConfig.KAFKA_USERNAME,
+    password: envConfig.KAFKA_PASSWORD,
+    saslMechanism: envConfig.KAFKA_SASL_MECHANISM,
+  },
 };

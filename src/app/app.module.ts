@@ -1,5 +1,10 @@
 import { CacheModule } from "@nestjs/cache-manager";
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { RateLimitModule } from "@src/app/modules/throttler/rateLimit.module";
@@ -21,6 +26,7 @@ const MODULES = [
   MeetingSessionModule,
   AuthModule,
   GalleryModule,
+  // KafkaModule,
 ];
 @Module({
   imports: [
@@ -39,6 +45,8 @@ const MODULES = [
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes("*");
+    consumer
+      .apply(AuthMiddleware)
+      .forRoutes({ path: "/*path", method: RequestMethod.ALL });
   }
 }
