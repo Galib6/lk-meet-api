@@ -90,26 +90,6 @@ const envSchema = Joi.object({
   LIVEKIT_API_KEY: Joi.string().required(),
   LIVEKIT_API_SECRET: Joi.string().required(),
   LIVEKIT_SERVER_URL: Joi.string().required(),
-
-  KAFKA_CLIENT_ID: Joi.string().required(),
-  KAFKA_BROKER: Joi.string().required(),
-  KAFKA_GROUP_ID: Joi.string().required(),
-  KAFKA_ENABLED: Joi.string().required(),
-  KAFKA_USERNAME: Joi.string().when("KAFKA_ENABLED", {
-    is: "true",
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
-  KAFKA_PASSWORD: Joi.string().when("KAFKA_ENABLED", {
-    is: "true",
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
-  KAFKA_SASL_MECHANISM: Joi.string().when("KAFKA_ENABLED", {
-    is: "true",
-    then: Joi.valid("plain", "scram-sha-256", "scram-sha-512").default("plain"),
-    otherwise: Joi.optional(),
-  }),
 }).unknown(true);
 
 // Validate process.env
