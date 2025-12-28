@@ -88,7 +88,8 @@ jobs:
           LIVEKIT_SERVER_URL: wss://r-tech.live
 
       - name: Docker Login
-        run: docker login -u ${{ env.DOCKER_USER }} -p ${{ env.DOCKER_PASSWORD }}
+        run:  echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
+
 
       - name: Build Docker Image
         run: docker build . -f Dockerfile -t ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
