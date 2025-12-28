@@ -88,7 +88,10 @@ jobs:
           LIVEKIT_SERVER_URL: wss://r-tech.live
 
       - name: Docker Login
-        run:  echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
+        run: |
+          mkdir -p /tmp/docker-config
+          echo '{}' > /tmp/docker-config/config.json
+          DOCKER_CONFIG=/tmp/docker-config echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
 
 
       - name: Build Docker Image
