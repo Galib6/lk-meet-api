@@ -113,7 +113,7 @@ jobs:
             set -e
 
             echo "Logging into Docker"
-            docker login -u ${{ env.DOCKER_USER }} -p ${{ env.DOCKER_PASSWORD }}
+            echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USER }}" --password-stdin
 
             echo "Pulling latest Docker image"
             docker pull ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
