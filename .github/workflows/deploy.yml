@@ -42,8 +42,8 @@ jobs:
           API_PREFIX: api/v1
           TZ: UTC
           API_VERSION: 1.0.0
-          API_TITLE: "r-tech meet app"
-          API_DESCRIPTION: "r-tech meet app"
+          API_TITLE: "meet app"
+          API_DESCRIPTION: "meet app"
           DB_TYPE: postgres
           DB_HOST: ${{ env.DB_HOST }}
           DB_PORT: 5432
@@ -54,7 +54,7 @@ jobs:
           DB_LOGGING: false
           DB_SSLMODE: false
           DB_REJECT_UNAUTHORIZED: false
-          CORS_ALLOWED_ORIGINS: http://localhost, http://localhost:5800, https://meet-api.r-tech.live, https://meet.r-tech.live
+          CORS_ALLOWED_ORIGINS: http://localhost, http://localhost:5800, https://meet-api.algalib.me, https://meet.algalib.me
           RATE_LIMIT_TTL: 60000
           RATE_LIMIT_MAX: 100
           LOG_FOLDER: logs
@@ -64,10 +64,10 @@ jobs:
           JWT_REFRESH_TOKEN_EXPIRES_IN: 30d
           S3_ENDPOINT: sgp1.digitaloceanspaces.com
           S3_REGION: sgp1
-          S3_ACCESS_KEY: DO00J7N6BMX64HRNTKUN
-          S3_SECRET_KEY: Rqf25w+w9On9DLeIS5LIPa18kEWmEoXjKDHs5MOtW2Q
-          S3_BUCKET: unispaces
-          S3_FOLDER_PREFIX: nebula
+          S3_ACCESS_KEY: DO0xcvxcv0J7N6BMX64HRNTKUN
+          S3_SECRET_KEY: Rqf25w+w9On9DLeISxcvxcv5LIPa18kEWmEoXjKDHs5MOtW2Q
+          S3_BUCKET: xcv
+          S3_FOLDER_PREFIX: nebuxcvxcvla
           REDIS_HOST: 157.245.50.140
           REDIS_PORT: 6379
           REDIS_USERNAME: default
@@ -85,7 +85,7 @@ jobs:
           SUPER_ADMIN_PASSWORD: 123456
           LIVEKIT_API_KEY: galib
           LIVEKIT_API_SECRET: 123456galib
-          LIVEKIT_SERVER_URL: wss://r-tech.live
+          LIVEKIT_SERVER_URL: wss://livekit.algalib.me
 
       - name: Docker Login
         uses: docker/login-action@v2
@@ -125,7 +125,7 @@ jobs:
             echo "Pulling latest Docker image"
             docker pull ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
-            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.r-tech.live || echo "")
+            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.algalib.me || echo "")
 
             if [ -z "$CURRENT_PORT" ]; then
               NEW_PORT=6800
@@ -168,7 +168,7 @@ jobs:
             done
 
             echo "Updating Nginx to new port $NEW_PORT"
-            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.r-tech.live
+            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.algalib.me
             nginx -s reload
 
             if [ ! -z "$OLD_CONTAINER" ]; then
