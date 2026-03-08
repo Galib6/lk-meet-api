@@ -125,7 +125,7 @@ jobs:
             echo "Pulling latest Docker image"
             docker pull ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
-            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://127.0.0.1:)\d+' /etc/nginx/sites-enabled/meet-api.algalib.me || echo "")
+            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://locahost:)\d+' /etc/nginx/sites-enabled/meet-api.algalib.me || echo "")
 
             if [ -z "$CURRENT_PORT" ]; then
               NEW_PORT=6800
@@ -168,7 +168,7 @@ jobs:
             done
 
             echo "Updating Nginx to new port $NEW_PORT"
-            sed -i "s/proxy_pass http:\/\/127.0.0.1:$CURRENT_PORT;/proxy_pass http:\/\/127.0.0.1:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.algalib.me
+            sed -i "s/proxy_pass http:\/\/localhost:$CURRENT_PORT;/proxy_pass http:\/\/localhost:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.algalib.me
             nginx -s reload
 
             if [ ! -z "$OLD_CONTAINER" ]; then
