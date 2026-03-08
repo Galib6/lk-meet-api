@@ -83,8 +83,8 @@ jobs:
           GOOGLE_REDIRECT_URL: ${{ env.GOOGLE_REDIRECT_URL }}
           SUPER_ADMIN_EMAIL: galib@gmail.com
           SUPER_ADMIN_PASSWORD: 123456
-          LIVEKIT_API_KEY: galib
-          LIVEKIT_API_SECRET: 123456galib
+          LIVEKIT_API_KEY: APIzLkJKsJGQYh1s
+          LIVEKIT_API_SECRET: W1PpHaVvPPe2gLH1g3o4uIiQMm4XlY6LrtQWEVSY8a2
           LIVEKIT_SERVER_URL: wss://livekit.algalib.me
 
       - name: Docker Login

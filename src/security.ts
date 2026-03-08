@@ -8,7 +8,7 @@ export function setupSecurity(app: INestApplication): void {
   app.use(helmet());
   app.enableCors({
     origin: (origin, callback) => {
-      console.log("allowed origins ", ENV.CORS_ALLOWED_ORIGINS, origin)
+      // console.log("allowed origins ", ENV.CORS_ALLOWED_ORIGINS, origin)
       if (!origin || ENV.CORS_ALLOWED_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
