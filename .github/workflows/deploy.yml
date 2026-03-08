@@ -125,7 +125,8 @@ jobs:
             echo "Pulling latest Docker image"
             docker pull ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest
 
-            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://locahost:)\d+' /etc/nginx/sites-enabled/meet-api.algalib.me || echo "")
+            # pull current port from nginx config (note spelling)
+            CURRENT_PORT=$(grep -oP '(?<=proxy_pass http://localhost:)\d+' /etc/nginx/sites-enabled/meet-api.algalib.me || echo "")
 
             if [ -z "$CURRENT_PORT" ]; then
               NEW_PORT=6800
@@ -152,6 +153,15 @@ jobs:
                 exit 1
               }
 
+            # log how many meet-live-api containers are running after start
+            RUNNING=$(docker ps --filter "name=meet-live-api" --format '{{.ID}}' | wc -l)
+            echo "Containers matching ‘meet-live-api’ currently running: $RUNNING"
+            if [ "$RUNNING" -gt 1 ]; then
+              echo "⚠️ Detected more than one meet-live-api container running – removing new container to avoid conflicts"
+              docker rm -f "$NEW_CONTAINER" || true
+              exit 1
+            fi
+
             echo "Waiting for service health on port $NEW_PORT..."
             for i in {1..20}; do
               sleep 5
@@ -167,9 +177,13 @@ jobs:
               fi
             done
 
-            echo "Updating Nginx to new port $NEW_PORT"
-            sed -i "s/proxy_pass http:\/\/localhost:$CURRENT_PORT;/proxy_pass http:\/\/localhost:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.algalib.me
-            nginx -s reload
+            if [ -n "$CURRENT_PORT" ]; then
+              echo "Updating Nginx to new port $NEW_PORT"
+              sed -i "s/proxy_pass http:\/\/localhost:$CURRENT_PORT;/proxy_pass http:\/\/localhost:$NEW_PORT;/" /etc/nginx/sites-enabled/meet-api.algalib.me
+              nginx -s reload
+            else
+              echo "⚠️ CURRENT_PORT not detected, skipping nginx reload"
+            fi
 
             if [ ! -z "$OLD_CONTAINER" ]; then
               echo "Removing old container: $OLD_CONTAINER"
