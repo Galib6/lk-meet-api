@@ -141,6 +141,9 @@ jobs:
               NEW_CONTAINER=meet-live-api-6800
             fi
 
+            echo "Removing any stale container with name $NEW_CONTAINER"
+            docker rm -f $NEW_CONTAINER 2>/dev/null || true
+
             echo "Starting new container on port $NEW_PORT"
             docker run -d --name $NEW_CONTAINER \
               -e NODE_ENV=production \
@@ -152,15 +155,6 @@ jobs:
                 docker rmi ${{ env.DOCKER_USER }}/${{ env.APP_NAME }}:latest || true
                 exit 1
               }
-
-            # log how many meet-live-api containers are running after start
-            RUNNING=$(docker ps --filter "name=meet-live-api" --format '{{.ID}}' | wc -l)
-            echo "Containers matching ‘meet-live-api’ currently running: $RUNNING"
-            if [ "$RUNNING" -gt 1 ]; then
-              echo "⚠️ Detected more than one meet-live-api container running – removing new container to avoid conflicts"
-              docker rm -f "$NEW_CONTAINER" || true
-              exit 1
-            fi
 
             echo "Waiting for service health on port $NEW_PORT..."
             for i in {1..20}; do
