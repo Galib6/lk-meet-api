@@ -11,6 +11,8 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from "@nestjs/swagger";
+import { ActiveUser } from "@src/app/decorators";
+import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { IFileMeta } from "@src/app/interfaces";
 import { SuccessResponse } from "@src/app/types";
 import { storageImageOptions } from "@src/shared/file.constants";
@@ -25,8 +27,11 @@ export class FileStorageController {
   constructor(private readonly fileUploadService: FileUploadService) {}
 
   @Get()
-  async filterFiles(@Query() query: FilterFiledDTO) {
-    return this.fileUploadService.filterFiles(query);
+  async filterFiles(
+    @Query() query: FilterFiledDTO,
+    @ActiveUser() authUser: IActiveUser
+  ) {
+    return this.fileUploadService.filterFiles(query, authUser);
   }
 
   @Post()
@@ -37,13 +42,17 @@ export class FileStorageController {
   )
   async uploadImage(
     @UploadedFiles() files: IFileMeta[],
-    @Body() body: UploadFileDto
+    @Body() body: UploadFileDto,
+    @ActiveUser() authUser: IActiveUser
   ): Promise<SuccessResponse> {
-    return this.fileUploadService.uploadImage(files, body);
+    return this.fileUploadService.uploadImage(files, body, authUser);
   }
 
   @Delete(":id")
-  async deleteOne(@Param("id") id: number): Promise<SuccessResponse> {
-    return this.fileUploadService.deleteFile(id);
+  async deleteOne(
+    @Param("id") id: number,
+    @ActiveUser() authUser: IActiveUser
+  ): Promise<SuccessResponse> {
+    return this.fileUploadService.deleteFile(id, authUser);
   }
 }

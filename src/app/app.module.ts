@@ -17,6 +17,7 @@ import { HelpersModule } from "./helpers/helpers.module";
 import { ResponseInterceptor } from "./interceptors/response.interceptor";
 import { AuthMiddleware } from "./middlewares";
 import { AuthModule } from "./modules/auth/auth.module";
+import { ExcaliFolderCanvasModule } from "./modules/excaliFolderCanvas/excaliFolderCanvas.module";
 import { GalleryModule } from "./modules/galleries/gallery.module";
 import { MeetingSessionModule } from "./modules/meetSession/meetSession.module";
 
@@ -24,6 +25,7 @@ const MODULES = [
   DatabaseModule,
   HelpersModule,
   MeetingSessionModule,
+  ExcaliFolderCanvasModule,
   AuthModule,
   GalleryModule,
   // KafkaModule,

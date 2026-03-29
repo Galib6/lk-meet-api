@@ -12,6 +12,9 @@ export enum ENUM_TABLE_NAMES {
 
   MEETING_SESSION = "meeting_session",
   MEETING_SESSION_USER = "meeting_session_user",
+
+  EXCALI_FOLDERS = "excali_folders",
+  EXCALI_CANVAS = "excali_canvas",
 }
 
 export enum ENUM_SEQUENCE {

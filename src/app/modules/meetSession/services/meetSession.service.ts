@@ -1,17 +1,17 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotAcceptableException,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { Cron } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "@src/app/base/base.service";
 import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { SuccessResponse } from "@src/app/types";
 import { randomString } from "@src/shared";
-import { In, Not, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { LiveKitService } from "../../livekit/services/livekit.service";
 import {
   CONNECTION_DETAILS,
@@ -27,6 +27,8 @@ import { MeetingSessionUserService } from "./meetSessionUser.service";
 
 @Injectable()
 export class MeetingSessionService extends BaseService<MeetingSession> {
+  private readonly logger = new Logger(MeetingSessionService.name);
+
   constructor(
     @InjectRepository(MeetingSession)
     public readonly _repo: Repository<MeetingSession>,
@@ -38,25 +40,26 @@ export class MeetingSessionService extends BaseService<MeetingSession> {
     super(_repo);
   }
 
-  @Cron("0 * * * * *")
-  async handleExpiredSessions() {
-    const roomList = await this.liveKitService.listRooms();
-    try {
-      await this.repo.update(
-        {
-          roomName: Not(In(roomList)),
-        },
-        {
-          sessionEnded: true,
-        }
-      );
-    } catch (error) {
-      console.log(
-        "🚀😬 ~ MeetingSessionService ~ handleExpiredSessions ~ error:",
-        error
-      );
-    }
-  }
+  // @Cron("0 * * * * *")
+  // async handleExpiredSessions() {
+  //   try {
+  //     const roomList = await this.liveKitService.listRooms();
+
+  //     await this.repo.update(
+  //       {
+  //         roomName: Not(In(roomList)),
+  //       },
+  //       {
+  //         sessionEnded: true,
+  //       }
+  //     );
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `Failed to sync expired sessions from LiveKit. Check LIVEKIT_SERVER_URL and connectivity.`,
+  //       error instanceof Error ? error.stack : undefined
+  //     );
+  //   }
+  // }
 
   async createSession(body: CreateMeetingSessionDTO, authUser: IActiveUser) {
     const newRoom = await this.createOneBase({

@@ -1,6 +1,7 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
+import { IActiveUser } from "@src/app/decorators/active-user.decorator";
 import { IFileMeta } from "@src/app/interfaces";
 import { SuccessResponse } from "@src/app/types";
 import { ENV } from "@src/env";
@@ -26,18 +27,26 @@ export class FileUploadService {
   ) {}
 
   async filterFiles(
-    payload: FilterFiledDTO
+    payload: FilterFiledDTO,
+    authUser: IActiveUser
   ): Promise<SuccessResponse | FileStorage[]> {
     if (payload.folder) {
       payload.folder = payload.folder.replace(/\+/g, "/").replace(" ", "");
       payload.folder = "images/" + payload.folder;
     }
 
-    const files = await this.fileStorageService.findAllBase(payload);
+    const files = await this.fileStorageService.findAllBase({
+      ...payload,
+      createdBy: authUser.id,
+    } as any);
     return files;
   }
 
-  async uploadImage(files: IFileMeta[], body: { folder: string }) {
+  async uploadImage(
+    files: IFileMeta[],
+    body: { folder: string },
+    authUser: IActiveUser
+  ) {
     if (body.folder) {
       body.folder = body.folder.replace(/\+/g, "/").replace(" ", "");
     }
@@ -60,6 +69,7 @@ export class FileUploadService {
       imgLink = await this.uploadToSpace({
         file,
         folder: body?.folder,
+        createdBy: { id: authUser.id } as User,
       });
       if (imgLink) uploaded.push(imgLink);
     });
@@ -191,7 +201,12 @@ export class FileUploadService {
   //   }
   // }
 
-  async deleteFile(id: number): Promise<SuccessResponse> {
+  async deleteFile(id: number, authUser: IActiveUser): Promise<SuccessResponse> {
+    await this.fileStorageService.isExist({
+      id,
+      createdBy: { id: authUser.id } as User,
+    });
+
     return await this.fileStorageService.deleteOneBase(id);
   }
 }
