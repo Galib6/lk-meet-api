@@ -21,7 +21,7 @@ import { ExcaliFolderService } from "../services/excaliFolder.service";
 
 @ApiTags("ExcaliFolders")
 @ApiBearerAuth()
-@Controller("internal/excali-folders")
+@Controller("excali-folders")
 export class InternalExcaliFolderController {
   constructor(private readonly service: ExcaliFolderService) { }
 

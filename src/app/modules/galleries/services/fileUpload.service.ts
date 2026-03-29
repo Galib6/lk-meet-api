@@ -24,7 +24,7 @@ export class FileUploadService {
 
     @Inject(s3Configs.KEY)
     private readonly s3Configuration: ConfigType<typeof s3Configs>
-  ) {}
+  ) { }
 
   async filterFiles(
     payload: FilterFiledDTO,

@@ -24,7 +24,7 @@ import { FileUploadService } from "../services/fileUpload.service";
 @ApiBearerAuth()
 @Controller("files")
 export class FileStorageController {
-  constructor(private readonly fileUploadService: FileUploadService) {}
+  constructor(private readonly fileUploadService: FileUploadService) { }
 
   @Get()
   async filterFiles(

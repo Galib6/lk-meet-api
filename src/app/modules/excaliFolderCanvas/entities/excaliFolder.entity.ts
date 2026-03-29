@@ -1,7 +1,8 @@
 import { BaseEntity } from "@src/app/base";
 import { ENUM_COLUMN_TYPES, ENUM_TABLE_NAMES } from "@src/shared";
-import { Column, Entity, ManyToOne, RelationId } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, RelationId } from "typeorm";
 import { User } from "../../user/entities/user.entity";
+import { ExcaliCanvas } from "./excaliCanvas.entity";
 
 @Entity(ENUM_TABLE_NAMES.EXCALI_FOLDERS)
 export class ExcaliFolder extends BaseEntity {
@@ -14,4 +15,7 @@ export class ExcaliFolder extends BaseEntity {
 
   @RelationId((e: ExcaliFolder) => e.user)
   userId?: number;
+
+  @OneToMany((t) => ExcaliCanvas, (canvas) => canvas.folder)
+  canvases?: ExcaliCanvas[];
 }

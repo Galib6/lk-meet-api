@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { BaseUpdateDTO } from "@src/app/base";
-import { IsInt, IsObject, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsArray, IsInt, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class UpdateExcaliCanvasDTO extends BaseUpdateDTO {
   @ApiProperty({
@@ -27,7 +27,7 @@ export class UpdateExcaliCanvasDTO extends BaseUpdateDTO {
     example: { elements: [], appState: {}, files: {} },
     required: false,
   })
-  @IsObject()
+  @IsArray()
   @IsOptional()
   readonly canvasData?: Record<string, unknown>;
 }

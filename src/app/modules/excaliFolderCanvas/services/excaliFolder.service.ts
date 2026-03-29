@@ -29,6 +29,7 @@ export class ExcaliFolderService extends BaseService<ExcaliFolder> {
     const qb = this.repo
       .createQueryBuilder("folder")
       .leftJoinAndSelect("folder.user", "user")
+      .leftJoinAndSelect("folder.canvases", "canvases")
       .where("user.id = :userId", { userId: authUser.id })
       .orderBy("folder.id", "DESC")
       .take(limit)
@@ -58,7 +59,7 @@ export class ExcaliFolderService extends BaseService<ExcaliFolder> {
           id: authUser.id,
         },
       },
-      relations: ["user"],
+      relations: ["user", "canvases"],
     });
 
     if (!folder) {
@@ -78,7 +79,7 @@ export class ExcaliFolderService extends BaseService<ExcaliFolder> {
         user: { id: authUser.id },
         createdBy: { id: authUser.id },
       } as ExcaliFolder,
-      { relations: ["user"] }
+      { relations: ["user", "canvases"] }
     );
   }
 
@@ -95,7 +96,7 @@ export class ExcaliFolderService extends BaseService<ExcaliFolder> {
         name: payload?.name,
         updatedBy: { id: authUser.id },
       },
-      { relations: ["user"] }
+      { relations: ["user", "canvases"] }
     );
   }
 

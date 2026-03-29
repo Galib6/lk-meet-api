@@ -19,7 +19,9 @@ export class ExcaliCanvas extends BaseEntity {
   @RelationId((e: ExcaliCanvas) => e.user)
   userId?: number;
 
-  @ManyToOne((t) => ExcaliFolder, { onDelete: "CASCADE" })
+  @ManyToOne((t) => ExcaliFolder, (folder) => folder.canvases, {
+    onDelete: "CASCADE",
+  })
   folder?: ExcaliFolder;
 
   @RelationId((e: ExcaliCanvas) => e.folder)

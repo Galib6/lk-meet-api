@@ -21,7 +21,7 @@ import { ExcaliCanvasService } from "../services/excaliCanvas.service";
 
 @ApiTags("ExcaliCanvas")
 @ApiBearerAuth()
-@Controller("internal/excali-canvas")
+@Controller("excali-canvas")
 export class InternalExcaliCanvasController {
   constructor(private readonly service: ExcaliCanvasService) { }
 
